@@ -24,27 +24,7 @@
         <springdoc.version>2.3.0</springdoc.version>
     </properties>
 
-    <repositories>
-        <repository>
-            <id>maven-central-repo1</id>
-            <name>Maven Central via Repo1</name>
-            <url>https://repo1.maven.org/maven2</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>maven-central-plugin-repo1</id>
-            <name>Maven Central Plugins via Repo1</name>
-            <url>https://repo1.maven.org/maven2</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
+    <!-- Using default Maven Central repository -->
 
     <dependencies>
         <!-- Spring Boot Starters -->
