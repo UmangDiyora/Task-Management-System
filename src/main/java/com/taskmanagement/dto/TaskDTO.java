@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -22,6 +24,13 @@ public class TaskDTO {
     private String description;
     private TaskStatus status;
     private TaskPriority priority;
+    private LocalDateTime dueDate;
+    private Long projectId;
+    private String projectName;
+    private Long assigneeId;
+    private String assigneeName;
+    private Long createdById;
+    private String createdByName;
     private LocalDate dueDate;
     private Long projectId;
     private String projectName;

@@ -1,124 +1,174 @@
 package com.taskmanagement.service;
 
-import com.taskmanagement.entity.Task;
-import com.taskmanagement.entity.TaskPriority;
-import com.taskmanagement.entity.TaskStatus;
-import com.taskmanagement.entity.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.taskmanagement.dto.TaskDTO;
+import com.taskmanagement.entity.*;
+import com.taskmanagement.mapper.EntityMapper;
+import com.taskmanagement.repository.ProjectRepository;
+import com.taskmanagement.repository.TaskRepository;
+import com.taskmanagement.repository.UserRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
-/**
- * Task Service Interface
- * Handles CRUD operations for tasks with business logic validation
- */
-public interface TaskService {
+@Service
+public class TaskService {
 
-    /**
-     * Create a new task
-     * @param title Task title
-     * @param description Task description
-     * @param projectId Project ID
-     * @param createdBy User creating the task
-     * @param priority Task priority
-     * @param dueDate Due date
-     * @return Created task
-     */
-    Task createTask(String title, String description, Long projectId,
-                   User createdBy, TaskPriority priority, LocalDate dueDate);
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final EntityMapper entityMapper;
+    private final NotificationService notificationService;
 
-    /**
-     * Assign task to a user
-     * @param taskId Task ID
-     * @param assigneeId User ID to assign to
-     * @param assignedBy User assigning the task
-     * @return Updated task
-     */
-    Task assignTask(Long taskId, Long assigneeId, User assignedBy);
+    public TaskService(TaskRepository taskRepository,
+                      ProjectRepository projectRepository,
+                      UserRepository userRepository,
+                      EntityMapper entityMapper,
+                      NotificationService notificationService) {
+        this.taskRepository = taskRepository;
+        this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
+        this.entityMapper = entityMapper;
+        this.notificationService = notificationService;
+    }
 
-    /**
-     * Update task status
-     * @param taskId Task ID
-     * @param status New status
-     * @param updatedBy User updating the status
-     * @return Updated task
-     */
-    Task updateTaskStatus(Long taskId, TaskStatus status, User updatedBy);
+    @Transactional
+    public TaskDTO createTask(TaskDTO taskDTO, Long createdById) {
+        User createdBy = userRepository.findById(createdById)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    /**
-     * Update task
-     * @param taskId Task ID
-     * @param title New title (optional)
-     * @param description New description (optional)
-     * @param priority New priority (optional)
-     * @param dueDate New due date (optional)
-     * @param updatedBy User updating the task
-     * @return Updated task
-     */
-    Task updateTask(Long taskId, String title, String description,
-                   TaskPriority priority, LocalDate dueDate, User updatedBy);
+        Project project = projectRepository.findById(taskDTO.getProjectId())
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
-    /**
-     * Get task by ID
-     * @param taskId Task ID
-     * @return Task if found
-     */
-    Optional<Task> getTaskById(Long taskId);
+        Task task = new Task();
+        task.setTitle(taskDTO.getTitle());
+        task.setDescription(taskDTO.getDescription());
+        task.setStatus(taskDTO.getStatus() != null ? taskDTO.getStatus() : TaskStatus.TODO);
+        task.setPriority(taskDTO.getPriority() != null ? taskDTO.getPriority() : TaskPriority.MEDIUM);
+        task.setDueDate(taskDTO.getDueDate());
+        task.setProject(project);
+        task.setCreatedBy(createdBy);
 
-    /**
-     * Get all tasks with pagination
-     * @param pageable Pagination parameters
-     * @return Page of tasks
-     */
-    Page<Task> getAllTasks(Pageable pageable);
+        if (taskDTO.getAssigneeId() != null) {
+            User assignee = userRepository.findById(taskDTO.getAssigneeId())
+                    .orElseThrow(() -> new RuntimeException("Assignee not found"));
+            task.setAssignee(assignee);
 
-    /**
-     * Get tasks by project
-     * @param projectId Project ID
-     * @param pageable Pagination parameters
-     * @return Page of tasks
-     */
-    Page<Task> getTasksByProject(Long projectId, Pageable pageable);
+            // Send notification to assignee
+            notificationService.createNotification(
+                    assignee.getId(),
+                    "You have been assigned a new task: " + task.getTitle(),
+                    NotificationType.TASK_ASSIGNED,
+                    task.getId(),
+                    project.getId()
+            );
+        }
 
-    /**
-     * Get tasks assigned to user
-     * @param assignee User
-     * @param pageable Pagination parameters
-     * @return Page of tasks
-     */
-    Page<Task> getTasksAssignedToUser(User assignee, Pageable pageable);
+        Task savedTask = taskRepository.save(task);
+        return entityMapper.toTaskDTO(savedTask);
+    }
 
-    /**
-     * Get tasks created by user
-     * @param createdBy User
-     * @param pageable Pagination parameters
-     * @return Page of tasks
-     */
-    Page<Task> getTasksCreatedByUser(User createdBy, Pageable pageable);
+    @Transactional(readOnly = true)
+    public TaskDTO getTaskById(Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+        return entityMapper.toTaskDTO(task);
+    }
 
-    /**
-     * Get tasks by status
-     * @param status Task status
-     * @param pageable Pagination parameters
-     * @return Page of tasks
-     */
-    Page<Task> getTasksByStatus(TaskStatus status, Pageable pageable);
+    @Transactional(readOnly = true)
+    public List<TaskDTO> getAllTasks() {
+        return taskRepository.findAll().stream()
+                .map(entityMapper::toTaskDTO)
+                .collect(Collectors.toList());
+    }
 
-    /**
-     * Delete task
-     * @param taskId Task ID
-     * @param deletedBy User deleting the task
-     */
-    void deleteTask(Long taskId, User deletedBy);
+    @Transactional(readOnly = true)
+    public List<TaskDTO> getTasksByProject(Long projectId) {
+        return taskRepository.findByProjectId(projectId).stream()
+                .map(entityMapper::toTaskDTO)
+                .collect(Collectors.toList());
+    }
 
-    /**
-     * Check if user can modify task
-     * @param taskId Task ID
-     * @param userId User ID
-     * @return true if user can modify, false otherwise
-     */
-    boolean canUserModifyTask(Long taskId, Long userId);
+    @Transactional(readOnly = true)
+    public List<TaskDTO> getTasksByAssignee(Long assigneeId) {
+        return taskRepository.findByAssigneeId(assigneeId).stream()
+                .map(entityMapper::toTaskDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskDTO> getTasksByStatus(TaskStatus status) {
+        return taskRepository.findByStatus(status).stream()
+                .map(entityMapper::toTaskDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public TaskDTO updateTask(Long id, TaskDTO taskDTO) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+
+        task.setTitle(taskDTO.getTitle());
+        task.setDescription(taskDTO.getDescription());
+        task.setPriority(taskDTO.getPriority());
+        task.setDueDate(taskDTO.getDueDate());
+
+        Task updatedTask = taskRepository.save(task);
+        return entityMapper.toTaskDTO(updatedTask);
+    }
+
+    @Transactional
+    public TaskDTO updateTaskStatus(Long id, TaskStatus newStatus) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+
+        TaskStatus oldStatus = task.getStatus();
+        task.setStatus(newStatus);
+        Task updatedTask = taskRepository.save(task);
+
+        // Notify assignee about status change
+        if (task.getAssignee() != null) {
+            notificationService.createNotification(
+                    task.getAssignee().getId(),
+                    "Task '" + task.getTitle() + "' status changed from " + oldStatus + " to " + newStatus,
+                    NotificationType.TASK_UPDATED,
+                    task.getId(),
+                    task.getProject().getId()
+            );
+        }
+
+        return entityMapper.toTaskDTO(updatedTask);
+    }
+
+    @Transactional
+    public TaskDTO assignTask(Long taskId, Long assigneeId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + taskId));
+
+        User assignee = userRepository.findById(assigneeId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + assigneeId));
+
+        task.setAssignee(assignee);
+        Task updatedTask = taskRepository.save(task);
+
+        // Send notification to new assignee
+        notificationService.createNotification(
+                assignee.getId(),
+                "You have been assigned to task: " + task.getTitle(),
+                NotificationType.TASK_ASSIGNED,
+                task.getId(),
+                task.getProject().getId()
+        );
+
+        return entityMapper.toTaskDTO(updatedTask);
+    }
+
+    @Transactional
+    public void deleteTask(Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+        taskRepository.delete(task);
+    }
 }

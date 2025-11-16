@@ -1,5 +1,203 @@
 # Task Management System
 
+A production-ready Task Management System built with Spring Boot 3.2, featuring real-time notifications, JWT authentication, and comprehensive REST APIs.
+
+## Features
+
+- **User Authentication & Authorization**: Secure JWT-based authentication with role-based access control
+- **Project Management**: Create and manage projects with team collaboration
+- **Task Management**: CRUD operations for tasks with assignment, priority, and status tracking
+- **Real-time Notifications**: WebSocket-based notifications for task assignments and updates
+- **Email Notifications**: Automated email alerts for important events
+- **Redis Caching**: Improved performance with Redis-based caching
+- **API Documentation**: Interactive Swagger/OpenAPI documentation
+- **Docker Support**: Fully containerized application with Docker Compose
+
+## Tech Stack
+
+- **Backend**: Spring Boot 3.2.0, Java 21
+- **Database**: PostgreSQL 16
+- **Cache**: Redis 7
+- **Security**: Spring Security 6, JWT (JJWT 0.12.3)
+- **Documentation**: SpringDoc OpenAPI 2.3.0
+- **Build Tool**: Maven 3.9+
+- **Containerization**: Docker & Docker Compose
+
+## Prerequisites
+
+- Java 21 or higher
+- Maven 3.9+
+- Docker & Docker Compose (for containerized deployment)
+- PostgreSQL 16 (if running locally without Docker)
+- Redis 7 (if running locally without Docker)
+
+## Quick Start
+
+### Option 1: Docker Compose (Recommended)
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd Task-Management-System
+```
+
+2. Build and run with Docker Compose:
+```bash
+docker-compose up --build
+```
+
+3. Access the application:
+- API: http://localhost:8080
+- Swagger UI: http://localhost:8080/swagger-ui.html
+
+### Option 2: Local Development
+
+1. Start PostgreSQL and Redis (using Docker Compose for just the databases):
+```bash
+docker-compose up postgres redis
+```
+
+2. Configure application.properties:
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/taskmanagement
+spring.datasource.username=taskuser
+spring.datasource.password=taskpass123
+spring.redis.host=localhost
+spring.redis.port=6379
+```
+
+3. Build and run the application:
+```bash
+mvn clean install
+mvn spring-boot:run
+```
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/signup` - Register a new user
+- `POST /api/auth/login` - Login and get JWT token
+- `GET /api/auth/validate` - Validate JWT token
+
+### Projects
+- `GET /api/projects` - Get all projects
+- `POST /api/projects` - Create a new project
+- `GET /api/projects/{id}` - Get project by ID
+- `PUT /api/projects/{id}` - Update project
+- `DELETE /api/projects/{id}` - Delete project
+- `POST /api/projects/{projectId}/team-members/{userId}` - Add team member
+- `DELETE /api/projects/{projectId}/team-members/{userId}` - Remove team member
+
+### Tasks
+- `GET /api/tasks` - Get all tasks
+- `POST /api/tasks` - Create a new task
+- `GET /api/tasks/{id}` - Get task by ID
+- `PUT /api/tasks/{id}` - Update task
+- `DELETE /api/tasks/{id}` - Delete task
+- `PATCH /api/tasks/{id}/status` - Update task status
+- `PATCH /api/tasks/{taskId}/assign/{assigneeId}` - Assign task to user
+
+### Notifications
+- `GET /api/notifications` - Get user notifications
+- `GET /api/notifications/unread` - Get unread notifications
+- `PATCH /api/notifications/{id}/read` - Mark notification as read
+- `PATCH /api/notifications/mark-all-read` - Mark all as read
+- `DELETE /api/notifications/{id}` - Delete notification
+
+## Authentication
+
+All endpoints except `/api/auth/**` require JWT authentication.
+
+1. Register a new user:
+```bash
+curl -X POST http://localhost:8080/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john",
+    "password": "password123",
+    "email": "john@example.com",
+    "fullName": "John Doe"
+  }'
+```
+
+2. Login to get JWT token:
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john",
+    "password": "password123"
+  }'
+```
+
+3. Use the token in subsequent requests:
+```bash
+curl -X GET http://localhost:8080/api/projects \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+## Configuration
+
+Key configuration properties in `application.properties`:
+
+```properties
+# Server
+server.port=8080
+
+# Database
+spring.datasource.url=jdbc:postgresql://localhost:5432/taskmanagement
+spring.datasource.username=taskuser
+spring.datasource.password=taskpass123
+
+# JPA/Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# Redis
+spring.redis.host=localhost
+spring.redis.port=6379
+
+# JWT
+jwt.secret=mySecretKeyForJWTTokenGenerationAndValidationMustBeLongEnough
+jwt.expiration=86400000
+
+# Email (Optional)
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=your-email@gmail.com
+spring.mail.password=your-app-password
+```
+
+## Project Structure
+
+```
+src/main/java/com/taskmanagement/
+├── config/              # Configuration classes
+│   ├── DataInitializer.java
+│   ├── MapperConfig.java
+│   ├── OpenApiConfig.java
+│   ├── RedisConfig.java
+│   ├── SecurityConfig.java
+│   └── WebSocketConfig.java
+├── controller/          # REST controllers
+│   ├── AuthController.java
+│   ├── ProjectController.java
+│   ├── TaskController.java
+│   └── NotificationController.java
+├── dto/                 # Data Transfer Objects
+├── entity/              # JPA entities
+├── mapper/              # Entity-DTO mappers
+├── repository/          # Spring Data JPA repositories
+├── security/            # Security components
+├── service/             # Business logic services
+└── util/                # Utility classes
+```
+
+## WebSocket Integration
+
+Connect to WebSocket for real-time notifications:
+
+```javascript
 A comprehensive, enterprise-grade task management REST API built with Spring Boot 3.2, featuring JWT authentication, real-time WebSocket notifications, Redis caching, and complete CRUD operations for projects and tasks.
 
 ---
@@ -405,357 +603,85 @@ const socket = new SockJS('http://localhost:8080/ws');
 const stompClient = Stomp.over(socket);
 
 stompClient.connect({}, function(frame) {
-    console.log('Connected: ' + frame);
-
-    // Subscribe to user-specific notifications
-    stompClient.subscribe('/user/queue/notifications', function(message) {
-        const notification = JSON.parse(message.body);
-        console.log('New notification:', notification);
-        showNotification(notification);
-    });
-
-    // Subscribe to project updates
-    stompClient.subscribe('/topic/projects/1', function(message) {
-        console.log('Project update:', message.body);
-    });
-
-    // Subscribe to task updates
-    stompClient.subscribe('/topic/projects/1/tasks', function(message) {
-        console.log('Task update:', message.body);
+    stompClient.subscribe('/user/queue/notifications', function(notification) {
+        console.log('Received notification:', JSON.parse(notification.body));
     });
 });
-
-function showNotification(notification) {
-    // Display notification in UI
-    alert(`${notification.title}: ${notification.message}`);
-}
 ```
 
-### React Example
+## Testing
 
-```javascript
-import SockJS from 'sockjs-client';
-import { Stomp } from '@stomp/stompjs';
-
-useEffect(() => {
-    const socket = new SockJS('http://localhost:8080/ws');
-    const client = Stomp.over(socket);
-
-    client.connect({}, () => {
-        client.subscribe('/user/queue/notifications', (message) => {
-            const notification = JSON.parse(message.body);
-            setNotifications(prev => [notification, ...prev]);
-        });
-    });
-
-    return () => client.disconnect();
-}, []);
+Run tests with:
+```bash
+mvn test
 ```
 
----
-
-## 🗄 Database Schema
-
-### Entity Relationships
-
-```
-User ──┬─ has many ─> Project
-       ├─ has many ─> Task (created)
-       ├─ has many ─> Task (assigned)
-       ├─ has many ─> Notification
-       └─ has many ─> Role (ManyToMany)
-
-Project ── has many ─> Task
-
-Task ──┬─ belongs to ─> Project
-       ├─ belongs to ─> User (creator)
-       └─ belongs to ─> User (assignee)
+Run with coverage:
+```bash
+mvn clean test jacoco:report
 ```
 
-### Key Tables
+## Swagger Documentation
 
-**users**
-- id (PK)
-- username (unique)
-- email (unique)
-- password (encrypted)
-- full_name
-- created_at
-- updated_at
+Access interactive API documentation at:
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- OpenAPI Spec: http://localhost:8080/v3/api-docs
 
-**projects**
-- id (PK)
-- name
-- description
-- status (ACTIVE, COMPLETED, ARCHIVED)
-- start_date
-- end_date
-- owner_id (FK → users)
-- created_at
-- updated_at
-
-**tasks**
-- id (PK)
-- title
-- description
-- status (TODO, IN_PROGRESS, IN_REVIEW, DONE)
-- priority (LOW, MEDIUM, HIGH, CRITICAL)
-- due_date
-- project_id (FK → projects)
-- created_by_id (FK → users)
-- assigned_to_id (FK → users)
-- created_at
-- updated_at
-
-**notifications**
-- id (PK)
-- user_id (FK → users)
-- title
-- message
-- type (INFO, WARNING, SUCCESS, ERROR)
-- is_read
-- created_at
-
----
-
-## 🔒 Security
-
-### Authentication Flow
-
-1. User registers via `/api/auth/signup`
-2. User logs in via `/api/auth/login` and receives JWT token
-3. User includes token in `Authorization: Bearer <token>` header
-4. JwtAuthenticationFilter validates token on each request
-5. Spring Security grants access based on user roles
-
-### Role-Based Access Control
-
-```java
-@PreAuthorize("hasRole('ADMIN')")        // Admin only
-@PreAuthorize("hasRole('MANAGER')")      // Manager and Admin
-@PreAuthorize("isAuthenticated()")       // Any logged-in user
-```
-
-**Default Roles:**
-- `ROLE_USER` - Standard user (default)
-- `ROLE_MANAGER` - Can view all projects/tasks
-- `ROLE_ADMIN` - Full system access
-
-### Security Best Practices Implemented
-
-- ✅ Passwords hashed with BCrypt (strength 10)
-- ✅ JWT tokens expire after 24 hours (configurable)
-- ✅ Stateless authentication (no server-side sessions)
-- ✅ CSRF protection disabled (API-only, not needed)
-- ✅ CORS configured for specific origins
-- ✅ Input validation on all endpoints
-- ✅ SQL injection protection via JPA/Hibernate
-- ✅ XSS protection via JSON serialization
-
----
-
-## 💻 Development
-
-### Available Commands
+## Docker Commands
 
 ```bash
-./setup.sh setup      # Setup development environment
-./setup.sh build      # Build application (skip tests)
-./setup.sh test       # Run all tests
-./setup.sh start      # Start in dev mode (H2)
-./setup.sh start-prod # Start in prod mode (PostgreSQL)
-./setup.sh clean      # Clean build artifacts
-./setup.sh info       # Show application info
+# Build and start all services
+docker-compose up --build
+
+# Start in detached mode
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# View logs
+docker-compose logs -f app
+
+# Rebuild specific service
+docker-compose up --build app
 ```
 
-### Environment Configuration
+## Environment Variables
 
-Create `src/main/resources/application-dev.properties`:
+| Variable | Description | Default |
+|----------|-------------|---------|
+| SPRING_DATASOURCE_URL | PostgreSQL connection URL | jdbc:postgresql://localhost:5432/taskmanagement |
+| SPRING_DATASOURCE_USERNAME | Database username | taskuser |
+| SPRING_DATASOURCE_PASSWORD | Database password | taskpass123 |
+| SPRING_REDIS_HOST | Redis host | localhost |
+| SPRING_REDIS_PORT | Redis port | 6379 |
+| JWT_SECRET | JWT secret key | (see application.properties) |
+| JWT_EXPIRATION | JWT expiration time (ms) | 86400000 (24 hours) |
 
-```properties
-# H2 Database (Development)
-spring.datasource.url=jdbc:h2:mem:taskmanagement
-spring.datasource.username=sa
-spring.datasource.password=
+## Troubleshooting
 
-# JWT Configuration
-jwt.secret=your-base64-encoded-secret-key
-jwt.expiration=86400000
+### Application won't start
+- Ensure PostgreSQL and Redis are running
+- Check database credentials in application.properties
+- Verify Java 21 is installed: `java -version`
 
-# Email Configuration (Optional)
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=your-email@gmail.com
-spring.mail.password=your-app-password
-```
+### Database connection errors
+- Verify PostgreSQL is running: `docker-compose ps`
+- Check connection URL and credentials
+- Ensure database 'taskmanagement' exists
 
-### Running Tests
+### Redis connection errors
+- Verify Redis is running: `docker-compose ps`
+- Check Redis host and port configuration
 
-```bash
-mvn test                              # Run all tests
-mvn test -Dtest=UserServiceTest       # Run specific test class
-mvn test -Dtest=UserServiceTest#testMethod  # Run specific test
-```
+## License
 
-### Logging Levels
+This project is licensed under the Apache License 2.0.
 
-Adjust in `application.properties`:
+## Contributors
 
-```properties
-logging.level.root=INFO
-logging.level.com.taskmanagement=DEBUG
-logging.level.org.springframework.security=DEBUG
-logging.level.org.hibernate.SQL=DEBUG
-```
+- Task Management Team
 
----
+## Support
 
-## 🧪 Testing
-
-### Test Structure
-
-```
-src/test/java/
-└── com/taskmanagement/
-    ├── controller/    # Controller integration tests
-    ├── service/       # Service unit tests
-    ├── repository/    # Repository tests
-    └── security/      # Security tests
-```
-
-### Example Test
-
-```java
-@SpringBootTest
-@AutoConfigureMockMvc
-class TaskControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Test
-    @WithMockUser(username = "testuser", roles = "USER")
-    void shouldCreateTask() throws Exception {
-        mockMvc.perform(post("/api/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(taskJson))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.title").value("Test Task"));
-    }
-}
-```
-
----
-
-## 🚢 Deployment
-
-### Building for Production
-
-```bash
-mvn clean package -DskipTests
-```
-
-The JAR file will be in `target/task-management-system-0.0.1-SNAPSHOT.jar`
-
-### Running the JAR
-
-```bash
-java -jar target/task-management-system-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
-```
-
-### Docker Deployment
-
-```dockerfile
-FROM eclipse-temurin:21-jre
-WORKDIR /app
-COPY target/*.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
-```
-
-Build and run:
-```bash
-docker build -t task-management-system .
-docker run -p 8080:8080 task-management-system
-```
-
-### Environment Variables
-
-```bash
-export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/taskmanagement
-export SPRING_DATASOURCE_USERNAME=postgres
-export SPRING_DATASOURCE_PASSWORD=yourpassword
-export JWT_SECRET=your-secret-key
-export JWT_EXPIRATION=86400000
-```
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Code Style
-
-- Follow Java naming conventions
-- Use Lombok to reduce boilerplate
-- Write meaningful commit messages
-- Add JavaDoc comments for public methods
-- Write unit tests for new features
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 📞 Support
-
-For support, email umangdiyora@example.com or open an issue on GitHub.
-
----
-
-## 🙏 Acknowledgments
-
-- Spring Boot team for the excellent framework
-- JWT.io for JWT implementation
-- All contributors and users of this project
-
----
-
-## 📊 Project Statistics
-
-- **Lines of Code:** ~6,500+
-- **Endpoints:** 30+
-- **Entities:** 5
-- **Services:** 7
-- **Controllers:** 5
-- **DTOs:** 10+
-- **Test Coverage:** 85%+
-
----
-
-## 🗺 Roadmap
-
-- [ ] Add unit and integration tests
-- [ ] Implement file upload for task attachments
-- [ ] Add project collaboration features
-- [ ] Implement task comments and activity log
-- [ ] Add task time tracking
-- [ ] Create frontend application (React/Angular)
-- [ ] Add CI/CD pipeline
-- [ ] Implement rate limiting
-- [ ] Add metrics and monitoring (Prometheus/Grafana)
-- [ ] Multi-tenancy support
-
----
-
-**Made with ❤️ by Umang Diyora**
+For issues and questions, please create an issue in the repository.

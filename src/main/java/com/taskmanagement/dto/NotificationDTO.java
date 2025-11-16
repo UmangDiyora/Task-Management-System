@@ -14,6 +14,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NotificationDTO {
+    private Long id;
+    private String message;
+    private NotificationType type;
+    private Boolean read;
+    private Long userId;
+    private Long relatedTaskId;
+    private Long relatedProjectId;
 
     private Long id;
     private String title;

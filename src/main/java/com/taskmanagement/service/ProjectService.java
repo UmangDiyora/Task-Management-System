@@ -1,93 +1,152 @@
 package com.taskmanagement.service;
 
+import com.taskmanagement.dto.ProjectDTO;
+import com.taskmanagement.entity.NotificationType;
 import com.taskmanagement.entity.Project;
 import com.taskmanagement.entity.ProjectStatus;
 import com.taskmanagement.entity.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.taskmanagement.mapper.EntityMapper;
+import com.taskmanagement.repository.ProjectRepository;
+import com.taskmanagement.repository.UserRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-/**
- * Project Service Interface
- * Handles CRUD operations for projects
- */
-public interface ProjectService {
+@Service
+public class ProjectService {
 
-    /**
-     * Create a new project
-     * @param name Project name
-     * @param description Project description
-     * @param owner Project owner
-     * @param startDate Start date
-     * @param endDate End date
-     * @return Created project
-     */
-    Project createProject(String name, String description, User owner, LocalDate startDate, LocalDate endDate);
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final EntityMapper entityMapper;
+    private final NotificationService notificationService;
 
-    /**
-     * Get project by ID
-     * @param projectId Project ID
-     * @return Project if found
-     */
-    Optional<Project> getProjectById(Long projectId);
+    public ProjectService(ProjectRepository projectRepository,
+                         UserRepository userRepository,
+                         EntityMapper entityMapper,
+                         NotificationService notificationService) {
+        this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
+        this.entityMapper = entityMapper;
+        this.notificationService = notificationService;
+    }
 
-    /**
-     * Get all projects with pagination
-     * @param pageable Pagination parameters
-     * @return Page of projects
-     */
-    Page<Project> getAllProjects(Pageable pageable);
+    @Transactional
+    public ProjectDTO createProject(ProjectDTO projectDTO, Long ownerId) {
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new RuntimeException("Owner not found"));
 
-    /**
-     * Get projects by owner
-     * @param owner Project owner
-     * @param pageable Pagination parameters
-     * @return Page of projects
-     */
-    Page<Project> getProjectsByOwner(User owner, Pageable pageable);
+        Project project = new Project();
+        project.setName(projectDTO.getName());
+        project.setDescription(projectDTO.getDescription());
+        project.setStatus(projectDTO.getStatus() != null ? projectDTO.getStatus() : ProjectStatus.PLANNING);
+        project.setStartDate(projectDTO.getStartDate());
+        project.setEndDate(projectDTO.getEndDate());
+        project.setOwner(owner);
 
-    /**
-     * Get projects by status
-     * @param status Project status
-     * @param pageable Pagination parameters
-     * @return Page of projects
-     */
-    Page<Project> getProjectsByStatus(ProjectStatus status, Pageable pageable);
+        // Initialize team members with owner
+        Set<User> teamMembers = new HashSet<>();
+        teamMembers.add(owner);
+        project.setTeamMembers(teamMembers);
 
-    /**
-     * Update project
-     * @param projectId Project ID
-     * @param name New name (optional)
-     * @param description New description (optional)
-     * @param status New status (optional)
-     * @param startDate New start date (optional)
-     * @param endDate New end date (optional)
-     * @return Updated project
-     */
-    Project updateProject(Long projectId, String name, String description,
-                         ProjectStatus status, LocalDate startDate, LocalDate endDate);
+        Project savedProject = projectRepository.save(project);
+        return entityMapper.toProjectDTO(savedProject);
+    }
 
-    /**
-     * Delete project
-     * @param projectId Project ID
-     */
-    void deleteProject(Long projectId);
+    @Transactional(readOnly = true)
+    public ProjectDTO getProjectById(Long id) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Project not found with id: " + id));
+        return entityMapper.toProjectDTO(project);
+    }
 
-    /**
-     * Check if user owns project
-     * @param projectId Project ID
-     * @param userId User ID
-     * @return true if user owns project, false otherwise
-     */
-    boolean isProjectOwner(Long projectId, Long userId);
+    @Transactional(readOnly = true)
+    public List<ProjectDTO> getAllProjects() {
+        return projectRepository.findAll().stream()
+                .map(entityMapper::toProjectDTO)
+                .collect(Collectors.toList());
+    }
 
-    /**
-     * Get project statistics for owner
-     * @param ownerId Owner user ID
-     * @return List of projects with statistics
-     */
-    List<Project> getProjectStatistics(Long ownerId);
+    @Transactional(readOnly = true)
+    public List<ProjectDTO> getProjectsByOwner(Long ownerId) {
+        return projectRepository.findByOwnerId(ownerId).stream()
+                .map(entityMapper::toProjectDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProjectDTO> getProjectsByTeamMember(Long userId) {
+        return projectRepository.findByTeamMembersId(userId).stream()
+                .map(entityMapper::toProjectDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProjectDTO> getProjectsByStatus(ProjectStatus status) {
+        return projectRepository.findByStatus(status).stream()
+                .map(entityMapper::toProjectDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ProjectDTO updateProject(Long id, ProjectDTO projectDTO) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Project not found with id: " + id));
+
+        project.setName(projectDTO.getName());
+        project.setDescription(projectDTO.getDescription());
+        project.setStatus(projectDTO.getStatus());
+        project.setStartDate(projectDTO.getStartDate());
+        project.setEndDate(projectDTO.getEndDate());
+
+        Project updatedProject = projectRepository.save(project);
+        return entityMapper.toProjectDTO(updatedProject);
+    }
+
+    @Transactional
+    public ProjectDTO addTeamMember(Long projectId, Long userId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        project.getTeamMembers().add(user);
+        Project updatedProject = projectRepository.save(project);
+
+        // Notify user about being added to project
+        notificationService.createNotification(
+                userId,
+                "You have been added to project: " + project.getName(),
+                NotificationType.PROJECT_UPDATED,
+                null,
+                projectId
+        );
+
+        return entityMapper.toProjectDTO(updatedProject);
+    }
+
+    @Transactional
+    public ProjectDTO removeTeamMember(Long projectId, Long userId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        project.getTeamMembers().remove(user);
+        Project updatedProject = projectRepository.save(project);
+
+        return entityMapper.toProjectDTO(updatedProject);
+    }
+
+    @Transactional
+    public void deleteProject(Long id) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Project not found with id: " + id));
+        projectRepository.delete(project);
+    }
 }

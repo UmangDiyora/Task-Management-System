@@ -1,75 +1,124 @@
 package com.taskmanagement.service;
 
+import com.taskmanagement.dto.NotificationDTO;
 import com.taskmanagement.entity.Notification;
 import com.taskmanagement.entity.NotificationType;
+import com.taskmanagement.entity.Project;
+import com.taskmanagement.entity.Task;
 import com.taskmanagement.entity.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.taskmanagement.mapper.EntityMapper;
+import com.taskmanagement.repository.NotificationRepository;
+import com.taskmanagement.repository.ProjectRepository;
+import com.taskmanagement.repository.TaskRepository;
+import com.taskmanagement.repository.UserRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-/**
- * Notification Service Interface
- * Handles notification creation, retrieval, and management
- */
-public interface NotificationService {
+@Service
+public class NotificationService {
 
-    /**
-     * Create a notification
-     * @param user User to notify
-     * @param title Notification title
-     * @param message Notification message
-     * @param type Notification type
-     * @return Created notification
-     */
-    Notification createNotification(User user, String title, String message, NotificationType type);
+    private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
+    private final EntityMapper entityMapper;
+    private SimpMessagingTemplate messagingTemplate;  // Will be injected later for WebSocket
 
-    /**
-     * Get all notifications for a user
-     * @param user User
-     * @param pageable Pagination parameters
-     * @return Page of notifications
-     */
-    Page<Notification> getUserNotifications(User user, Pageable pageable);
+    public NotificationService(NotificationRepository notificationRepository,
+                              UserRepository userRepository,
+                              TaskRepository taskRepository,
+                              ProjectRepository projectRepository,
+                              EntityMapper entityMapper) {
+        this.notificationRepository = notificationRepository;
+        this.userRepository = userRepository;
+        this.taskRepository = taskRepository;
+        this.projectRepository = projectRepository;
+        this.entityMapper = entityMapper;
+    }
 
-    /**
-     * Get unread notifications for a user
-     * @param user User
-     * @return List of unread notifications
-     */
-    List<Notification> getUnreadNotifications(User user);
+    // Setter for WebSocket template (to avoid circular dependency)
+    public void setMessagingTemplate(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
 
-    /**
-     * Get unread notification count for a user
-     * @param user User
-     * @return Count of unread notifications
-     */
-    long getUnreadNotificationCount(User user);
+    @Transactional
+    public NotificationDTO createNotification(Long userId, String message, NotificationType type,
+                                             Long taskId, Long projectId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    /**
-     * Mark notification as read
-     * @param notificationId Notification ID
-     * @param user User (for verification)
-     * @return Updated notification
-     */
-    Notification markAsRead(Long notificationId, User user);
+        Notification notification = new Notification();
+        notification.setMessage(message);
+        notification.setType(type);
+        notification.setRead(false);
+        notification.setUser(user);
 
-    /**
-     * Mark all notifications as read for a user
-     * @param user User
-     */
-    void markAllAsRead(User user);
+        if (taskId != null) {
+            Task task = taskRepository.findById(taskId).orElse(null);
+            notification.setRelatedTask(task);
+        }
 
-    /**
-     * Delete notification
-     * @param notificationId Notification ID
-     * @param user User (for verification)
-     */
-    void deleteNotification(Long notificationId, User user);
+        if (projectId != null) {
+            Project project = projectRepository.findById(projectId).orElse(null);
+            notification.setRelatedProject(project);
+        }
 
-    /**
-     * Delete all read notifications for a user
-     * @param user User
-     */
-    void deleteAllReadNotifications(User user);
+        Notification savedNotification = notificationRepository.save(notification);
+        NotificationDTO notificationDTO = entityMapper.toNotificationDTO(savedNotification);
+
+        // Send real-time notification via WebSocket if template is available
+        if (messagingTemplate != null) {
+            messagingTemplate.convertAndSendToUser(
+                    user.getUsername(),
+                    "/queue/notifications",
+                    notificationDTO
+            );
+        }
+
+        return notificationDTO;
+    }
+
+    @Transactional(readOnly = true)
+    public List<NotificationDTO> getUserNotifications(Long userId) {
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(entityMapper::toNotificationDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<NotificationDTO> getUnreadNotifications(Long userId) {
+        return notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(userId).stream()
+                .map(entityMapper::toNotificationDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public NotificationDTO markAsRead(Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+
+        notification.setRead(true);
+        Notification updatedNotification = notificationRepository.save(notification);
+        return entityMapper.toNotificationDTO(updatedNotification);
+    }
+
+    @Transactional
+    public void markAllAsRead(Long userId) {
+        List<Notification> unreadNotifications = notificationRepository
+                .findByUserIdAndReadFalseOrderByCreatedAtDesc(userId);
+
+        unreadNotifications.forEach(notification -> notification.setRead(true));
+        notificationRepository.saveAll(unreadNotifications);
+    }
+
+    @Transactional
+    public void deleteNotification(Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+        notificationRepository.delete(notification);
+    }
 }
