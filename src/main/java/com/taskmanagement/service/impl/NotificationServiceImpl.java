@@ -1,10 +1,13 @@
 package com.taskmanagement.service.impl;
 
+import com.taskmanagement.dto.NotificationDTO;
 import com.taskmanagement.entity.Notification;
 import com.taskmanagement.entity.NotificationType;
 import com.taskmanagement.entity.User;
+import com.taskmanagement.mapper.NotificationMapper;
 import com.taskmanagement.repository.NotificationRepository;
 import com.taskmanagement.service.NotificationService;
+import com.taskmanagement.websocket.WebSocketNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,7 +27,8 @@ import java.util.List;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
-    // WebSocket notification service will be injected later in Part 6
+    private final WebSocketNotificationService webSocketNotificationService;
+    private final NotificationMapper notificationMapper;
 
     /**
      * Create a notification
@@ -44,8 +48,13 @@ public class NotificationServiceImpl implements NotificationService {
         Notification savedNotification = notificationRepository.save(notification);
         log.info("Notification created successfully with ID: {}", savedNotification.getId());
 
-        // TODO: Send real-time notification via WebSocket (Part 6)
-        // webSocketNotificationService.sendNotificationToUser(user.getId(), savedNotification);
+        // Send real-time notification via WebSocket
+        try {
+            NotificationDTO notificationDTO = notificationMapper.toDTO(savedNotification);
+            webSocketNotificationService.sendNotificationToUser(user.getId(), notificationDTO);
+        } catch (Exception e) {
+            log.error("Failed to send real-time notification: {}", e.getMessage());
+        }
 
         return savedNotification;
     }
