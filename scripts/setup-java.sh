@@ -5,6 +5,8 @@
 
 set -euo pipefail
 JDK_PATHS=("/usr/lib/jvm/java-17-openjdk-amd64" "/usr/lib/jvm/java-17-openjdk" "/usr/lib/jvm/java-17-openjdk-amd64/" )
+# Also include SDKMAN-managed JDK locations (user or system install)
+JDK_PATHS+=("$HOME/.sdkman/candidates/java/current" "/usr/local/sdkman/candidates/java/current" "${SDKMAN_CANDIDATES_DIR:-}/java/current")
 FOUND=""
 for p in "${JDK_PATHS[@]}"; do
   if [ -d "$p" ]; then
