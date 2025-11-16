@@ -1,0 +1,49 @@
+# Production Profile - Using PostgreSQL
+spring.application.name=Task Management System
+
+# PostgreSQL Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/taskmanagement
+spring.datasource.username=your_db_username
+spring.datasource.password=your_db_password
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA/Hibernate
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=false
+
+# Redis Configuration
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+spring.cache.type=redis
+spring.cache.redis.time-to-live=600000
+
+# JWT Configuration
+jwt.secret=CHANGE_THIS_TO_A_SECURE_SECRET_KEY_FOR_PRODUCTION
+jwt.expiration=86400000
+
+# Email Configuration
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=your-production-email@gmail.com
+spring.mail.password=your-production-app-password
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+
+# Logging
+logging.level.root=WARN
+logging.level.com.taskmanagement=INFO
+logging.level.org.springframework.security=WARN
+logging.level.org.hibernate.SQL=WARN
+
+# Server
+server.port=8080
+
+# Swagger/OpenAPI (disable in production for security)
+springdoc.api-docs.enabled=false
+springdoc.swagger-ui.enabled=false
+
+# Actuator
+management.endpoints.web.exposure.include=health,info
+management.endpoint.health.show-details=when-authorized
