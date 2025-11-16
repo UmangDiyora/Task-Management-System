@@ -3,20 +3,20 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:14-alpine
-    container_name: taskmanagement-postgres
+    image: postgres:16-alpine
+    container_name: task-management-db
     environment:
       POSTGRES_DB: taskmanagement
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: taskuser
+      POSTGRES_PASSWORD: taskpass123
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - taskmanagement-network
+      - task-management-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U taskuser -d taskmanagement"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,46 +24,49 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: taskmanagement-redis
+    container_name: task-management-redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - taskmanagement-network
+      - task-management-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    command: redis-server --appendonly yes
 
-  # Spring Boot Application (uncomment when ready to deploy)
-  # app:
-  #   build: .
-  #   container_name: taskmanagement-app
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/taskmanagement
-  #     SPRING_DATASOURCE_USERNAME: postgres
-  #     SPRING_DATASOURCE_PASSWORD: postgres
-  #     SPRING_DATA_REDIS_HOST: redis
-  #     SPRING_DATA_REDIS_PORT: 6379
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   networks:
-  #     - taskmanagement-network
+  # Spring Boot Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task-management-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/taskmanagement
+      SPRING_DATASOURCE_USERNAME: taskuser
+      SPRING_DATASOURCE_PASSWORD: taskpass123
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: mySecretKeyForJWTTokenGenerationAndValidationMustBeLongEnough
+      JWT_EXPIRATION: 86400000
+    ports:
+      - "8080:8080"
+    networks:
+      - task-management-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
-    driver: local
   redis_data:
-    driver: local
 
 networks:
-  taskmanagement-network:
+  task-management-network:
     driver: bridge
