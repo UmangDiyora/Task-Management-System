@@ -111,7 +111,18 @@ start_app() {
     echo -e "${YELLOW}Note:${NC} Using H2 in-memory database. Data will be lost when application stops."
     echo ""
 
-    mvn spring-boot:run -Dspring-boot.run.profiles=dev
+    # Try to run with offline mode first if dependencies are cached
+    echo "Attempting to start with cached dependencies (offline mode)..."
+    mvn spring-boot:run -Dspring-boot.run.profiles=dev -o 2>/dev/null
+
+    # If offline mode fails, try online mode
+    if [ $? -ne 0 ]; then
+        echo ""
+        echo -e "${YELLOW}Offline mode failed, trying online mode...${NC}"
+        echo -e "${YELLOW}Note:${NC} If you see DNS errors, dependencies may need to be pre-downloaded."
+        echo ""
+        mvn spring-boot:run -Dspring-boot.run.profiles=dev
+    fi
 }
 
 # Function to start with production profile (requires PostgreSQL/Redis)
