@@ -198,6 +198,407 @@ src/main/java/com/taskmanagement/
 Connect to WebSocket for real-time notifications:
 
 ```javascript
+A comprehensive, enterprise-grade task management REST API built with Spring Boot 3.2, featuring JWT authentication, real-time WebSocket notifications, Redis caching, and complete CRUD operations for projects and tasks.
+
+---
+
+## 📋 Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [API Documentation](#api-documentation)
+- [WebSocket Integration](#websocket-integration)
+- [Database Schema](#database-schema)
+- [Security](#security)
+- [Development](#development)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## ✨ Features
+
+### Core Functionality
+- ✅ **User Management** - Registration, authentication, profile management
+- ✅ **Project Management** - Create, update, delete projects with status tracking
+- ✅ **Task Management** - Complete CRUD with assignment, priority, and status
+- ✅ **Real-time Notifications** - WebSocket-based instant notifications
+- ✅ **Role-Based Access Control** - Admin, Manager, and User roles
+- ✅ **Email Notifications** - Async email sending with retry logic
+- ✅ **Redis Caching** - Performance optimization with distributed cache
+
+### Security
+- ✅ **JWT Authentication** - Stateless token-based authentication
+- ✅ **BCrypt Password Hashing** - Secure password storage
+- ✅ **CORS Configuration** - Cross-origin resource sharing support
+- ✅ **Method-Level Security** - @PreAuthorize annotations
+- ✅ **Exception Handling** - Global exception handler with detailed error responses
+
+### Technical Features
+- ✅ **Pagination** - Efficient data retrieval with page/size/sort params
+- ✅ **Validation** - Jakarta Validation with custom validators
+- ✅ **Audit Logging** - Automatic created/updated timestamps
+- ✅ **API Documentation** - Swagger/OpenAPI 3.0 integration
+- ✅ **Health Checks** - Spring Boot Actuator endpoints
+- ✅ **H2 Database** - In-memory database for development
+- ✅ **PostgreSQL Support** - Production-ready relational database
+
+---
+
+## 🛠 Tech Stack
+
+### Backend Framework
+- **Spring Boot** 3.2.0
+- **Spring Security** 6.2.0
+- **Spring Data JPA** - ORM and database access
+- **Spring WebSocket** - Real-time communication
+- **Spring Mail** - Email notifications
+
+### Database
+- **PostgreSQL** 14 - Production database
+- **H2** - In-memory database for development
+- **Redis** 7 - Caching layer
+
+### Security
+- **JJWT** 0.12.3 - JWT token generation and validation
+- **BCrypt** - Password encryption
+
+### Documentation & API
+- **Springdoc OpenAPI** 2.3.0 - API documentation
+- **Swagger UI** - Interactive API explorer
+
+### Build & Dependencies
+- **Maven** 3.9+ - Dependency management
+- **Java** 21 - Programming language
+- **Lombok** - Boilerplate code reduction
+
+### Development Tools
+- **SLF4J/Logback** - Logging
+- **Jackson** - JSON serialization
+- **Hibernate** - ORM implementation
+
+---
+
+## 🏗 Architecture
+
+### Layered Architecture
+
+```
+┌─────────────────────────────────────────┐
+│          REST Controllers               │
+│   (AuthController, UserController, etc) │
+├─────────────────────────────────────────┤
+│              DTOs & Mappers             │
+│    (SignupRequest, UserDTO, etc)        │
+├─────────────────────────────────────────┤
+│           Service Layer                 │
+│   (AuthService, TaskService, etc)       │
+├─────────────────────────────────────────┤
+│          Repository Layer               │
+│  (UserRepository, ProjectRepository)    │
+├─────────────────────────────────────────┤
+│          Database (PostgreSQL)          │
+└─────────────────────────────────────────┘
+```
+
+### Package Structure
+
+```
+com.taskmanagement/
+├── config/              # Configuration classes
+│   ├── AsyncConfig.java
+│   ├── RedisConfig.java
+│   ├── SecurityConfig.java
+│   └── WebSocketConfig.java
+├── controller/          # REST endpoints
+│   ├── AuthController.java
+│   ├── UserController.java
+│   ├── ProjectController.java
+│   ├── TaskController.java
+│   └── NotificationController.java
+├── dto/                 # Data Transfer Objects
+│   ├── SignupRequest.java
+│   ├── LoginRequest.java
+│   ├── JwtResponse.java
+│   └── ...
+├── entity/              # JPA entities
+│   ├── User.java
+│   ├── Role.java
+│   ├── Project.java
+│   ├── Task.java
+│   └── Notification.java
+├── repository/          # Data access layer
+│   ├── UserRepository.java
+│   ├── ProjectRepository.java
+│   ├── TaskRepository.java
+│   └── ...
+├── service/             # Business logic
+│   ├── AuthService.java
+│   ├── UserService.java
+│   ├── ProjectService.java
+│   └── ...
+├── security/            # Security components
+│   ├── JwtUtils.java
+│   ├── UserDetailsImpl.java
+│   ├── UserDetailsServiceImpl.java
+│   ├── JwtAuthenticationFilter.java
+│   └── JwtAuthenticationEntryPoint.java
+├── exception/           # Exception handling
+│   ├── GlobalExceptionHandler.java
+│   ├── ResourceNotFoundException.java
+│   └── ...
+├── mapper/              # Entity-DTO mappers
+│   ├── UserMapper.java
+│   ├── ProjectMapper.java
+│   └── ...
+└── websocket/           # WebSocket services
+    ├── WebSocketNotificationService.java
+    └── WebSocketEventListener.java
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Java 21** or higher
+- **Maven 3.6+**
+- **PostgreSQL 14+** (for production) or use H2 (development)
+- **Redis 7+** (optional, falls back to simple cache)
+
+### Quick Start (Development Mode with H2)
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/UmangDiyora/Task-Management-System.git
+   cd Task-Management-System
+   ```
+
+2. **Run the application**
+   ```bash
+   ./setup.sh start
+   ```
+
+3. **Access the application**
+   - API: http://localhost:8080
+   - Swagger UI: http://localhost:8080/swagger-ui.html
+   - H2 Console: http://localhost:8080/h2-console
+
+### Production Setup with PostgreSQL
+
+1. **Start PostgreSQL and Redis**
+   ```bash
+   docker-compose up -d postgres redis
+   ```
+
+2. **Configure database**
+   ```bash
+   cp src/main/resources/application-prod.properties.example src/main/resources/application-prod.properties
+   # Edit application-prod.properties with your credentials
+   ```
+
+3. **Run in production mode**
+   ```bash
+   ./setup.sh start-prod
+   ```
+
+### Using Docker Compose (Full Stack)
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Check logs
+docker-compose logs -f app
+
+# Stop all services
+docker-compose down
+```
+
+---
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+
+#### Register a New User
+```http
+POST /api/auth/signup
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "password123",
+  "fullName": "John Doe"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "message": "User registered successfully!"
+}
+```
+
+#### Login
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "password": "password123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiJ9...",
+  "type": "Bearer",
+  "id": 1,
+  "username": "johndoe",
+  "email": "john@example.com",
+  "fullName": "John Doe",
+  "roles": ["ROLE_USER"]
+}
+```
+
+### User Endpoints
+
+All user endpoints require authentication. Include JWT token in Authorization header:
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+#### Get Current User Profile
+```http
+GET /api/users/me
+```
+
+#### Update Profile
+```http
+PUT /api/users/me?fullName=John%20Smith&email=johnsmith@example.com
+```
+
+#### Change Password
+```http
+PUT /api/users/me/password?oldPassword=old123&newPassword=new123
+```
+
+### Project Endpoints
+
+#### Create Project
+```http
+POST /api/projects
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "name": "Website Redesign",
+  "description": "Complete website overhaul",
+  "startDate": "2025-01-01",
+  "endDate": "2025-06-30"
+}
+```
+
+#### Get My Projects
+```http
+GET /api/projects/my?page=0&size=10
+```
+
+#### Update Project
+```http
+PUT /api/projects/1?name=New%20Name&status=COMPLETED
+```
+
+#### Delete Project
+```http
+DELETE /api/projects/1
+```
+
+### Task Endpoints
+
+#### Create Task
+```http
+POST /api/tasks
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "title": "Design homepage mockup",
+  "description": "Create wireframes and mockups for the new homepage",
+  "projectId": 1,
+  "priority": "HIGH",
+  "dueDate": "2025-02-15"
+}
+```
+
+#### Assign Task
+```http
+PUT /api/tasks/1/assign/2
+Authorization: Bearer <token>
+```
+
+#### Update Task Status
+```http
+PUT /api/tasks/1/status?status=IN_PROGRESS
+```
+
+#### Get My Tasks
+```http
+GET /api/tasks/my?page=0&size=10
+```
+
+#### Get Tasks by Project
+```http
+GET /api/tasks/project/1?page=0&size=10
+```
+
+### Notification Endpoints
+
+#### Get User Notifications
+```http
+GET /api/notifications?page=0&size=10
+```
+
+#### Get Unread Count
+```http
+GET /api/notifications/unread/count
+```
+
+#### Mark as Read
+```http
+PUT /api/notifications/1/read
+```
+
+#### Mark All as Read
+```http
+PUT /api/notifications/read-all
+```
+
+### Complete API Reference
+
+Visit Swagger UI at http://localhost:8080/swagger-ui.html for interactive API documentation.
+
+---
+
+## 🔌 WebSocket Integration
+
+### JavaScript Client Example
+
+```javascript
+// Include SockJS and STOMP libraries
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/dist/stomp.umd.min.js"></script>
+
+// Connect to WebSocket
 const socket = new SockJS('http://localhost:8080/ws');
 const stompClient = Stomp.over(socket);
 

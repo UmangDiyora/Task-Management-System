@@ -8,10 +8,17 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+/**
+ * DTO for Task entity
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class TaskDTO {
+
     private Long id;
     private String title;
     private String description;
@@ -24,6 +31,13 @@ public class TaskDTO {
     private String assigneeName;
     private Long createdById;
     private String createdByName;
+    private LocalDate dueDate;
+    private Long projectId;
+    private String projectName;
+    private Long createdById;
+    private String createdByUsername;
+    private Long assignedToId;
+    private String assignedToUsername;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

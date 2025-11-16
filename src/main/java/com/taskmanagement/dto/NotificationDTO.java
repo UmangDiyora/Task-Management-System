@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * DTO for Notification entity
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,5 +21,11 @@ public class NotificationDTO {
     private Long userId;
     private Long relatedTaskId;
     private Long relatedProjectId;
+
+    private Long id;
+    private String title;
+    private String message;
+    private NotificationType type;
+    private boolean read;
     private LocalDateTime createdAt;
 }
