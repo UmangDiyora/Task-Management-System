@@ -33,12 +33,17 @@ public class Notification {
     @Column(name = "message", nullable = false, length = 500)
     private String message;
 
+    @NotBlank(message = "Notification title is required")
+    @Size(max = 200, message = "Title must not exceed 200 characters")
+    @Column(name = "title", nullable = false, length = 200)
+    private String title;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(name = "is_read", nullable = false)
-    private Boolean isRead = false;
+    private boolean isRead = false;
 
     @Column(name = "reference_id")
     private Long referenceId;

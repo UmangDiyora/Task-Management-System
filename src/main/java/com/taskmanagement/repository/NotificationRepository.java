@@ -27,6 +27,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     Page<Notification> findByUser(User user, Pageable pageable);
 
     /**
+     * Find all notifications for a user ordered by creation date descending
+     */
+    Page<Notification> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+
+    /**
      * Find all unread notifications for a user
      * @param user the user
      * @param isRead read status
