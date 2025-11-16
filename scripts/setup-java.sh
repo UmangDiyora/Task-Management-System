@@ -2,6 +2,17 @@
 # Small helper to configure Java 17 for this user/session.
 # Usage: ./scripts/setup-java.sh [--persist]
 # --persist will append exports to ~/.bashrc (asks for confirmation)
+#
+# Notes:
+# - The script searches common system install paths for a JDK 17.
+# - If you manage Java with SDKMAN, this script will also detect
+#   the SDKMAN-managed JDK at `$HOME/.sdkman/candidates/java/current`.
+#   Example SDKMAN usage:
+#     source "$HOME/.sdkman/bin/sdkman-init.sh"
+#     sdk install java 17.0.17-tem
+#     sdk use java 17.0.17-tem
+#   After running `sdk use` the script can persist a canonical
+#   `JAVA_HOME` export pointing at the SDKMAN `current` candidate.
 
 set -euo pipefail
 JDK_PATHS=("/usr/lib/jvm/java-17-openjdk-amd64" "/usr/lib/jvm/java-17-openjdk" "/usr/lib/jvm/java-17-openjdk-amd64/" )
