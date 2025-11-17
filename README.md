@@ -658,6 +658,42 @@ docker-compose up --build app
 | JWT_SECRET | JWT secret key | (see application.properties) |
 | JWT_EXPIRATION | JWT expiration time (ms) | 86400000 (24 hours) |
 
+## Testing
+
+The project includes comprehensive testing covering unit tests, integration tests, repository tests, and performance tests.
+
+### Running Tests
+
+```bash
+# Run all tests
+./run-tests.sh all
+
+# Run unit tests only
+./run-tests.sh unit
+
+# Run integration tests only
+./run-tests.sh integration
+
+# Run with coverage report
+./run-tests.sh coverage
+
+# Run performance tests (requires JMeter)
+./run-tests.sh performance
+
+# Quick test suite (unit + smoke)
+./run-tests.sh quick
+```
+
+### Test Coverage
+
+- **Unit Tests**: Service layer testing with Mockito
+- **Integration Tests**: Full API endpoint testing
+- **Repository Tests**: Database query testing
+- **Smoke Tests**: Critical path verification
+- **Performance Tests**: Load and stress testing
+
+View detailed testing documentation in [TESTING.md](TESTING.md)
+
 ## Troubleshooting
 
 ### Application won't start
