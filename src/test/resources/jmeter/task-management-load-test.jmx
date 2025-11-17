@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Task Management System - Load Test">
+      <stringProp name="TestPlan.comments">Load test for Task Management System API</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="BASE_URL" elementType="Argument">
+            <stringProp name="Argument.name">BASE_URL</stringProp>
+            <stringProp name="Argument.value">http://localhost:8080</stringProp>
+          </elementProp>
+          <elementProp name="USERS" elementType="Argument">
+            <stringProp name="Argument.name">USERS</stringProp>
+            <stringProp name="Argument.value">100</stringProp>
+          </elementProp>
+          <elementProp name="RAMP_UP" elementType="Argument">
+            <stringProp name="Argument.name">RAMP_UP</stringProp>
+            <stringProp name="Argument.value">30</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <!-- Thread Group: Authentication Test -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Authentication Load Test">
+        <stringProp name="ThreadGroup.num_threads">${USERS}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${RAMP_UP}</stringProp>
+        <longProp name="ThreadGroup.duration">120</longProp>
+        <stringProp name="ThreadGroup.delay">0</stringProp>
+      </ThreadGroup>
+      <hashTree>
+        <!-- HTTP Request: Signup -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/auth/signup">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.path">/api/auth/signup</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{"username":"user${__threadNum}","password":"password123","email":"user${__threadNum}@example.com","fullName":"Test User ${__threadNum}"}</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+
+        <!-- HTTP Request: Login -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/auth/login">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.path">/api/auth/login</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{"username":"user${__threadNum}","password":"password123"}</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+        </HTTPSamplerProxy>
+      </hashTree>
+
+      <!-- Listeners -->
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report"/>
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree"/>
+      <ResultCollector guiclass="GraphVisualizer" testclass="ResultCollector" testname="Graph Results"/>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
